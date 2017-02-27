@@ -8,14 +8,13 @@ xi = 0.2;
 
 W = 0:0.05:50;
 
-H = @(s) 1 ./ T .* s + 1;
+H = @(s) 1 ./ (T .* T .* s .* s + 2 * T * xi *s + 1);
 
 figure
 hold on
 grid on
 xlabel('w')
 ylabel('A(w)')
-A = k ./ sqrt(T .* W + 1);
 A1 = k ./ sqrt(T1 .* T1 .* W .* W + 1);
 A2 = k ./ sqrt(T2 .* T2 .* W .* W + 1);
 plot(w, A, 'r');
@@ -76,12 +75,12 @@ plot(w, L2, 'b')
 hold off
 
 %----------
-
-close all
-
-sys = tf([k], [T 1]);
-ltiview(sys)
-figure
-impulse(sys)
-figure
-nyquist(sys)
+% 
+% close all
+% 
+% sys = tf([k], [T*2 2*T*xi 1]);
+% ltiview(sys)
+% figure
+% impulse(sys)
+% figure
+% nyquist(sys)
