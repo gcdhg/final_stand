@@ -26,8 +26,8 @@ hold on
 grid on
 xlabel('w')
 ylabel('U(w)')
-U = k .* (1 - T .^ 2 .* W .^ 2) ./ ((1 - T .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T .* W) .^ 2);
-U1 = k .* (1 - T1 .^ 2 .* W .^ 2) ./ ((1 - T1 .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T1 .* W) .^ 2);
+V = k .* (1 - T .^ 2 .* W .^ 2) ./ ((1 - T .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T .* W) .^ 2);
+V1 = k .* (1 - T1 .^ 2 .* W .^ 2) ./ ((1 - T1 .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T1 .* W) .^ 2);
 plot(W, U, 'r')
 plot(W, U1, 'g')
 hold off
@@ -37,10 +37,9 @@ hold on
 grid on
 xlabel('w')
 ylabel('\phi(w)')
-phi_t = @(x) atan((2 .* xi .* T .* x) ./ (1 - T .^ 2 .* x .^ 2));
-phi_t1 = @(x) atan((2 .* xi .* T .* x) ./ (1 - T .^ 2 .* x .^ 2));
-PHI = horzcat(phi_t(0:0.05:(1 / T)), phi_t((1 / T):0.05:50));
-PHI1 = horzcat(phi_t1(0:0.05:(1 / T1)), phi_t1((1 / T1):0.05:50));
+phi_t = @(x) atan(2 * xi * T * x) /
+PHI = -atan(T .* W);
+PHI1 = -atan(T1 .* W);
 plot(W, PHI, 'r')
 plot(W, PHI1, 'g')
 hold off
@@ -50,8 +49,8 @@ hold on
 grid on
 xlabel('w')
 ylabel('V(w)')
-V =  -2 .* k .* xi .* T .* W ./ ((1 - T .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T .* W) .^ 2);
-V1 = -2 .* k .* xi .* T1 .* W ./ ((1 - T1 .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T1 .* W) .^ 2);
+U =  -2 .* k .* xi .* T .* W ./ ((1 - T .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T .* W) .^ 2);
+U1 = -2 .* k .* xi .* T1 .* W ./ ((1 - T1 .^ 2 .* W .^ 2) .^ 2 + (2 .* xi .* T1 .* W) .^ 2);
 plot(W, V, 'r')
 plot(W, V1, 'g')
 hold off
