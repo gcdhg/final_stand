@@ -40,9 +40,9 @@ hold on
 grid on
 xlabel('w')
 ylabel('\phi(w)')
-PHI = -atan(T .* w);
-PHI1 = -atan(T1 .* w);
-PHI2 = -atan(T2 .* w);
+PHI = -atan(T .* W);
+PHI1 = -atan(T1 .* W);
+PHI2 = -atan(T2 .* W);
 plot(w, PHI, 'r')
 plot(w, PHI1, 'g')
 plot(w, PHI2, 'b')
