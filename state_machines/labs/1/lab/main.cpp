@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <numeric>
 
 using namespace std;
 
@@ -193,7 +194,33 @@ void PrintVector(vector<Implicant>& vec) {
         cout << setw(2) << x.GetPatch() << " ";
     });
 
+
     cout << endl;
+    cout << "W: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.WasPatched() << " ";
+    });
+
+    cout << endl;
+}
+
+void PatchVectors(vector<Implicant>& source, vector<Implicant>& target) {
+    for (uint16_t i = 0; i < source.size(); i++) {
+        for (uint16_t j = i + 1; j < source.size(); j++) {
+            if (source[i].CanPatch(source[j])) {
+                target.push_back(source[i].Patch(source[j]));
+
+//                cout << "Patching " << source[i].GetIndex() << " with " << source[j].GetIndex() << endl;
+            }
+        }
+    }
+
+    for (uint16_t i = 0; i < source.size(); i++) {
+        if (!source[i].WasPatched()) {
+//            cout << "Adding unpached value: " << source[i].GetIndex() << endl;
+            target.push_back(Implicant(source[i]));
+        }
+    }
 }
 
 int main() {
@@ -259,22 +286,7 @@ int main() {
 
     vector<Implicant> m_2;
 
-    for (uint16_t i = 0; i < m_1.size(); i++) {
-        for (uint16_t j = i + 1; j < m_1.size(); j++) {
-            if (m_1[i].CanPatch(m_1[j])) {
-                m_2.push_back(m_1[i].Patch(m_1[j]));
-
-                cout << "Patching " << m_1[i].GetIndex() << " with " << m_1[j].GetIndex() << endl;
-            }
-        }
-    }
-
-    for (uint16_t i = 0; i < m_1.size(); i++) {
-        if (!m_1[i].WasPatched()) {
-            cout << "Adding unpached value: " << m_1[i].GetIndex() << endl;
-            m_2.push_back(Implicant(m_1[i]));
-        }
-    }
+    PatchVectors(m_1, m_2);
 
     PrintVector(m_2);
 
@@ -284,13 +296,49 @@ int main() {
 
     cout << "M3:" << endl;
 
+    vector<Implicant> m_3_prev;
+
+    transform(m_2.begin(), m_2.end(), back_inserter(m_3_prev), [](Implicant x) {
+        x.SetPatched(false);
+        return x;
+    });
+
+
+
+    // TODO: It *IS* bugged. M3 size keeps growing. Apparently, Patch is not working correctly.
+    
     vector<Implicant> m_3;
 
-    transform(m_2.begin(), m_2.end(), back_inserter(m_3), [](const Implicant& x) {
-        Implicant copy = Implicant(x);
-        copy.SetPatched(false);
-        return copy;
-    });
+    uint16_t patched_implicants = 0;
+
+    int tmp = 0;
+
+    do {
+
+        cout << "A new attempt to minimize M3. Patched implicants: " << patched_implicants << endl;
+
+        // Clear M3 before doing anything
+
+        m_3.clear();
+
+        PatchVectors(m_3_prev, m_3);
+
+        // Clean up: set m_3_prev, calculate patched implicants
+
+        m_3_prev.clear();
+
+        transform(m_3.begin(), m_3.end(), back_inserter(m_3_prev), [](Implicant x) {
+            x.SetPatched(false);
+            return x;
+        });
+
+        patched_implicants = accumulate(m_3.begin(), m_3.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
+            return (x.WasPatched()) ? acc + 1 : acc;
+        });
+    } while(patched_implicants > 0 && (++tmp) < 2);
+
+
+    cout << "Patched implicants: " << patched_implicants << endl;
 
     PrintVector(m_3);
 
