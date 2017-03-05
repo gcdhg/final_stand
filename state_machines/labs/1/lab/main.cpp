@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 
 using namespace std;
 
@@ -89,8 +90,16 @@ public:
         return this->value_;
     }
 
-    uint16_t CountOnes() const {
+    uint16_t GetPopcount() const {
         return CountOnes16(this->GetIndex());
+    }
+
+    uint16_t GetDiffPopcount(const Implicant& other) const {
+        uint16_t diff = (other.GetValue() > this->GetValue())
+            ? other.GetValue() - this->GetValue()
+            : this->GetValue() - other.GetValue();
+
+        return CountOnes16(diff);
     }
 };
 
@@ -108,7 +117,7 @@ void PrintImplicant(const Implicant& implicant, uint8_t count) {
         cout << value;
     }
     cout << endl;
-}
+}   
 
 int main() {
     ifstream scale("scale.txt");
@@ -147,6 +156,33 @@ int main() {
 
     for_each(func.begin(), func.end(), [&function_size](Implicant x) {
         PrintImplicant(x, function_size);
+    });
+
+    cout << endl << endl;
+
+    // M1: filter out false values. Consider '-' as '1'
+
+    vector<Implicant> m_1;
+
+    remove_copy_if(func.begin(), func.end(), back_inserter(m_1), [](const Implicant& x) {
+        return x.GetValue() == FALSE;
+    });
+
+    // Print
+
+    cout << "M1:" << endl;
+
+    cout << "N: ";
+
+    for_each(m_1.begin(), m_1.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetIndex() << " ";
+    });
+
+    cout << endl;
+
+    cout << "P: ";
+    for_each(m_1.begin(), m_1.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPopcount() << " ";
     });
 
     cout << endl << endl;
