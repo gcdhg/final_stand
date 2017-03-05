@@ -78,8 +78,27 @@ class Implicant {
 private:
     uint16_t index_;
     LogicValue value_;
+    bool was_patched_;
+    uint16_t patch_;
+
+    Implicant(const Implicant& src, uint16_t patch) {
+        this->index_ = src.GetIndex();
+        this->value_ = src.GetValue();
+        this->was_patched_ = src.WasPatched();
+        this->patch_ = patch;
+    }
+
 public:
     Implicant(uint16_t index, LogicValue value) : index_(index), value_(value) {
+        this->was_patched_ = false;
+        this->patch_ = 0;
+    }
+
+    Implicant(const Implicant& other) {
+        this->index_ = other.GetIndex();
+        this->value_ = other.GetValue();
+        this->was_patched_ = other.WasPatched();
+        this->patch_ = other.GetPatch();
     }
 
     uint16_t GetIndex() const {
@@ -94,12 +113,45 @@ public:
         return CountOnes16(this->GetIndex());
     }
 
+    uint16_t GetPatch() const {
+        return this->patch_;
+    }
+
+    bool WasPatched() const {
+        return this->was_patched_;
+    }
+
+    bool CanPatch(const Implicant& other) const {
+        return (other.GetIndex() > this->GetIndex() && this->GetDiffPopcount(other) == 1);
+    }
+
     uint16_t GetDiffPopcount(const Implicant& other) const {
-        uint16_t diff = (other.GetValue() > this->GetValue())
-            ? other.GetValue() - this->GetValue()
-            : this->GetValue() - other.GetValue();
+        uint16_t diff = (other.GetIndex() > this->GetIndex())
+                        ? other.GetIndex() - this->GetIndex()
+                        : this->GetIndex() - other.GetIndex();
 
         return CountOnes16(diff);
+    }
+
+    // Non-const functions
+    // Really sorry to write them
+    // But life's hard, eh?
+
+
+    Implicant Patch(Implicant& other) {
+        // TODO: properly mutate the properties
+        // It seems not to be working correctly
+        if (this->CanPatch(other)) {
+            this->was_patched_ = true;
+            other.SetPatched(true); // those with the flag will be removed
+            return Implicant(*this, this->patch_ = other.GetIndex() - this->GetIndex());
+        } else {
+            throw runtime_error("Can't patch. Please, use Implicant::CanPatch/1 before calling Implicant::Patch");
+        }
+    }
+
+    void SetPatched(bool value) {
+        this->was_patched_ = value;
     }
 };
 
@@ -117,7 +169,7 @@ void PrintImplicant(const Implicant& implicant, uint8_t count) {
         cout << value;
     }
     cout << endl;
-}   
+}
 
 int main() {
     ifstream scale("scale.txt");
@@ -180,12 +232,58 @@ int main() {
 
     cout << endl;
 
-    cout << "P: ";
+    cout << "I: ";
     for_each(m_1.begin(), m_1.end(), [](const Implicant& x) {
         cout << setw(2) << x.GetPopcount() << " ";
     });
 
     cout << endl << endl;
+
+    // M2: Patching values
+
+    cout << "M2:" << endl;
+
+    vector<Implicant> m_2;
+
+    for (uint16_t i = 0; i < m_1.size(); i++) {
+        for (uint16_t j = i + 1; j < m_1.size(); j++) {
+            if (m_1[i].CanPatch(m_1[j])) {
+                m_2.push_back(m_1[i].Patch(m_1[j]));
+
+                cout << "Patching " << m_1[i].GetIndex() << " with " << m_1[j].GetIndex() << endl;
+            }
+        }
+    }
+
+    for (uint16_t i = 0; i < m_1.size(); i++) {
+        if (!m_1[i].WasPatched()) {
+            cout << "Adding unpached value: " << m_1[i].GetIndex() << endl;
+            m_2.push_back(Implicant(m_1[i]));
+        }
+    }
+
+    cout << "N: ";
+
+    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetIndex() << " ";
+    });
+
+    cout << endl;
+
+    cout << "I: ";
+    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPopcount() << " ";
+    });
+
+    cout << endl;
+    cout << "P: ";
+    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPatch() << " ";
+    });
+
+    cout << endl << endl;
+
+    // M3: patch M2 until no patching is possible
 
     // Cleaning up
 
