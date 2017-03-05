@@ -7,34 +7,151 @@
 
 using namespace std;
 
+const char VARIABLE_NAMES[16] = {
+        'x', 'y', 'z',
+        'a', 'b', 'c',
+        'd', 'e', 'f',
+        'g', 'h', 'i',
+        'u', 'v', 'p',
+        'q'
+};
+
+#ifdef __GNUG__
+
+uint16_t CountOnes16(uint16_t input) {
+    return __builtin_popcount(input);
+}
+
+#else
+
+uint16_t CountOnes16(uint16_t input) {
+    return (uint16_t) (
+        ((input & 0x1)) +
+        ((input & 0x2) >> 1) +
+        ((input & 0x4) >> 2) +
+        ((input & 0x8) >> 3) +
+        ((input & 0x10) >> 4) +
+        ((input & 0x20) >> 5) +
+        ((input & 0x30) >> 6) +
+        ((input & 0x40) >> 7) +
+        ((input & 0x50) >> 8) +
+        ((input & 0x60) >> 9) +
+        ((input & 0x70) >> 10) +
+        ((input & 0x80) >> 11) +
+        ((input & 0x90) >> 12) +
+        ((input & 0xA0) >> 13) +
+        ((input & 0xB0) >> 14) +
+        ((input & 0xC0) >> 15)
+    );
+}
+
+#endif
+
+enum LogicValue {
+    FALSE,
+    TRUE,
+    INDETERMINATE
+};
+
+LogicValue LogicValueFromChar(char input) {
+    switch (input) {
+        case '0': return FALSE;
+        case '1': return TRUE;
+        case '-': return INDETERMINATE;
+        default: {
+            const string error = (string) "Invalid DNF value: " + input;
+            throw runtime_error(error);
+        }
+    }
+}
+
+char LogicValueToChar(LogicValue input) {
+    switch (input) {
+        case FALSE: return '0';
+        case TRUE: return '1';
+        case INDETERMINATE: return '-';
+    }
+}
+
+class Implicant {
+private:
+    uint16_t index_;
+    LogicValue value_;
+public:
+    Implicant(uint16_t index, LogicValue value) : index_(index), value_(value) {
+    }
+
+    uint16_t GetIndex() const {
+        return this->index_;
+    }
+
+    LogicValue GetValue() const {
+        return this->value_;
+    }
+
+    uint16_t CountOnes() const {
+        return CountOnes16(this->GetIndex());
+    }
+};
+
+void PrintVariables(uint8_t count ) {
+    for (uint8_t i = 0; i < count; i++) {
+        cout << VARIABLE_NAMES[i];
+    }
+    cout << endl;
+}
+
+void PrintImplicant(const Implicant& implicant, uint8_t count) {
+    char value = LogicValueToChar(implicant.GetValue());
+
+    for (uint8_t i = 0; i < count; i++) {
+        cout << value;
+    }
+    cout << endl;
+}
+
 int main() {
     ifstream scale("scale.txt");
     ofstream mdnf("mdnf.txt");
     string buff;
-    vector<uint16_t> func;
+    vector<Implicant> func;
+
+    uint16_t idx = 0;
+
+    // actual reading
 
     getline(scale, buff);
 
-    transform(buff.begin(), buff.end(), back_inserter(func), [](char x) {
-        switch (x) {
-            case '0': return 0;
-            case '1': case '-': return 1;
-            default: {
-                const string error = (string) "Invalid DNF value: " + x;
-                throw runtime_error(error);
-            }
-        }
+
+    transform(buff.begin(), buff.end(), back_inserter(func), [&idx](char x) {
+        return Implicant(idx++, LogicValueFromChar(x));
     });
 
-    uint16_t function_size = (uint16_t) log2(func.size());
+    uint8_t function_size = (uint8_t) log2(func.size());
 
-    cout << "Loaded function of " << function_size << " arguments:" << endl;
+    // Debug output
+
+    cout << "Loaded function of " << (uint16_t) function_size << " arguments:" << endl;
 
     cout << buff << endl;
 
-    for_each(func.begin(), func.end(), [](uint16_t x) {
-        cout << x;
+    for_each(func.begin(), func.end(), [](Implicant x) {
+        cout << LogicValueToChar(x.GetValue());
     });
+
+    cout << endl << endl;
+
+    cout << "Truth table for the function:" << endl;
+
+    PrintVariables((uint8_t) function_size);
+
+    for_each(func.begin(), func.end(), [&function_size](Implicant x) {
+        PrintImplicant(x, function_size);
+    });
+
+    cout << endl << endl;
+
+    // Cleaning up
 
     scale.close();
     mdnf.close();
