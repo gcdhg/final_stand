@@ -122,7 +122,9 @@ public:
     }
 
     bool CanPatch(const Implicant& other) const {
-        return (other.GetIndex() > this->GetIndex() && this->GetDiffPopcount(other) == 1);
+        return (other.GetIndex() > this->GetIndex() &&
+                this->GetDiffPopcount(other) == 1 &&
+                this->GetPatch() == other.GetPatch());
     }
 
     uint16_t GetDiffPopcount(const Implicant& other) const {
@@ -144,7 +146,7 @@ public:
         if (this->CanPatch(other)) {
             this->was_patched_ = true;
             other.SetPatched(true); // those with the flag will be removed
-            return Implicant(*this, this->patch_ = other.GetIndex() - this->GetIndex());
+            return Implicant(*this, other.GetIndex() - this->GetIndex());
         } else {
             throw runtime_error("Can't patch. Please, use Implicant::CanPatch/1 before calling Implicant::Patch");
         }
@@ -168,6 +170,29 @@ void PrintImplicant(const Implicant& implicant, uint8_t count) {
     for (uint8_t i = 0; i < count; i++) {
         cout << value;
     }
+    cout << endl;
+}
+
+void PrintVector(vector<Implicant>& vec) {
+    cout << "N: ";
+
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetIndex() << " ";
+    });
+
+    cout << endl;
+
+    cout << "I: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPopcount() << " ";
+    });
+
+    cout << endl;
+    cout << "P: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPatch() << " ";
+    });
+
     cout << endl;
 }
 
@@ -224,20 +249,9 @@ int main() {
 
     cout << "M1:" << endl;
 
-    cout << "N: ";
-
-    for_each(m_1.begin(), m_1.end(), [](const Implicant& x) {
-        cout << setw(2) << x.GetIndex() << " ";
-    });
+    PrintVector(m_1);
 
     cout << endl;
-
-    cout << "I: ";
-    for_each(m_1.begin(), m_1.end(), [](const Implicant& x) {
-        cout << setw(2) << x.GetPopcount() << " ";
-    });
-
-    cout << endl << endl;
 
     // M2: Patching values
 
@@ -262,28 +276,25 @@ int main() {
         }
     }
 
-    cout << "N: ";
-
-    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
-        cout << setw(2) << x.GetIndex() << " ";
-    });
+    PrintVector(m_2);
 
     cout << endl;
-
-    cout << "I: ";
-    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
-        cout << setw(2) << x.GetPopcount() << " ";
-    });
-
-    cout << endl;
-    cout << "P: ";
-    for_each(m_2.begin(), m_2.end(), [](const Implicant& x) {
-        cout << setw(2) << x.GetPatch() << " ";
-    });
-
-    cout << endl << endl;
 
     // M3: patch M2 until no patching is possible
+
+    cout << "M3:" << endl;
+
+    vector<Implicant> m_3;
+
+    transform(m_2.begin(), m_2.end(), back_inserter(m_3), [](const Implicant& x) {
+        Implicant copy = Implicant(x);
+        copy.SetPatched(false);
+        return copy;
+    });
+
+    PrintVector(m_3);
+
+    cout << endl;
 
     // Cleaning up
 
