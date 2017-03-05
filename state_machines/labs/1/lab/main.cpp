@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iomanip>
 #include <numeric>
+#include <set>
 
 using namespace std;
 
@@ -123,9 +124,10 @@ public:
     }
 
     bool CanPatch(const Implicant& other) const {
-        return (other.GetIndex() > this->GetIndex() &&
-                this->GetDiffPopcount(other) == 1 &&
-                this->GetPatch() == other.GetPatch());
+        return (other.GetIndex() > this->GetIndex()) &&
+               ((other.GetPopcount() - this->GetPopcount()) == 1) &&
+               (this->GetDiffPopcount(other) == 1) &&
+               (this->GetPatch() == other.GetPatch());
     }
 
     uint16_t GetDiffPopcount(const Implicant& other) const {
@@ -136,18 +138,33 @@ public:
         return CountOnes16(diff);
     }
 
+    bool operator==(const Implicant &rhs) const {
+        return index_ == rhs.index_ &&
+               value_ == rhs.value_ &&
+               was_patched_ == rhs.was_patched_ &&
+               patch_ == rhs.patch_;
+    }
+
+    bool operator!=(const Implicant &rhs) const {
+        return !(rhs == *this);
+    }
+
+
+
+    bool operator<(const Implicant& other) const {
+        return this->GetIndex() < other.GetIndex();
+    }
+
     // Non-const functions
     // Really sorry to write them
     // But life's hard, eh?
 
 
     Implicant Patch(Implicant& other) {
-        // TODO: properly mutate the properties
-        // It seems not to be working correctly
         if (this->CanPatch(other)) {
             this->was_patched_ = true;
-            other.SetPatched(true); // those with the flag will be removed
-            return Implicant(*this, other.GetIndex() - this->GetIndex());
+            other.SetPatched(true);
+            return Implicant(*this, this->GetPatch() + other.GetIndex() - this->GetIndex());
         } else {
             throw runtime_error("Can't patch. Please, use Implicant::CanPatch/1 before calling Implicant::Patch");
         }
@@ -204,20 +221,37 @@ void PrintVector(vector<Implicant>& vec) {
     cout << endl;
 }
 
-void PatchVectors(vector<Implicant>& source, vector<Implicant>& target) {
+string ImplicantToString(const Implicant& source) {
+    return (
+        string("[") +
+        to_string(source.GetIndex()) +
+        string(";") +
+        to_string(source.GetPopcount()) +
+        string(";") +
+        to_string(source.GetPatch()) +
+        string("]")
+    );
+}
+
+void PatchVectors(vector<Implicant>& source, vector<Implicant>& target, bool verbose = false) {
     for (uint16_t i = 0; i < source.size(); i++) {
         for (uint16_t j = i + 1; j < source.size(); j++) {
             if (source[i].CanPatch(source[j])) {
                 target.push_back(source[i].Patch(source[j]));
 
-//                cout << "Patching " << source[i].GetIndex() << " with " << source[j].GetIndex() << endl;
+                if (verbose) {
+                    cout << "Patching " << ImplicantToString(source[i]) << " with " << ImplicantToString(source[j]) << endl;
+                }
             }
         }
     }
 
     for (uint16_t i = 0; i < source.size(); i++) {
         if (!source[i].WasPatched()) {
-//            cout << "Adding unpached value: " << source[i].GetIndex() << endl;
+
+            if (verbose) {
+                cout << "Adding unpached value: " << ImplicantToString(source[i]) << endl;
+            }
             target.push_back(Implicant(source[i]));
         }
     }
@@ -302,11 +336,8 @@ int main() {
         x.SetPatched(false);
         return x;
     });
-
-
-
-    // TODO: It *IS* bugged. M3 size keeps growing. Apparently, Patch is not working correctly.
     
+
     vector<Implicant> m_3;
 
     uint16_t patched_implicants = 0;
@@ -323,6 +354,8 @@ int main() {
 
         PatchVectors(m_3_prev, m_3);
 
+        PrintVector(m_3);
+
         // Clean up: set m_3_prev, calculate patched implicants
 
         m_3_prev.clear();
@@ -332,10 +365,14 @@ int main() {
             return x;
         });
 
+        // remove duplicates
+        set<Implicant> tmpset(m_3_prev.begin(), m_3_prev.end());
+        m_3_prev.assign(tmpset.begin(), tmpset.end());
+
         patched_implicants = accumulate(m_3.begin(), m_3.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
             return (x.WasPatched()) ? acc + 1 : acc;
         });
-    } while(patched_implicants > 0 && (++tmp) < 2);
+    } while(patched_implicants > 0 && (++tmp) < 10);
 
 
     cout << "Patched implicants: " << patched_implicants << endl;
