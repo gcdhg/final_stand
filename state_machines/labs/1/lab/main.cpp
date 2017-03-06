@@ -150,11 +150,6 @@ public:
     }
 
 
-
-    bool operator<(const Implicant& other) const {
-        return this->GetIndex() < other.GetIndex();
-    }
-
     // Non-const functions
     // Really sorry to write them
     // But life's hard, eh?
@@ -188,6 +183,36 @@ void PrintImplicant(const Implicant& implicant, uint8_t count) {
     for (uint8_t i = 0; i < count; i++) {
         cout << value;
     }
+    cout << endl;
+}
+
+void PrintSet(set<Implicant>& vec) {
+    cout << "N: ";
+
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetIndex() << " ";
+    });
+
+    cout << endl;
+
+    cout << "I: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPopcount() << " ";
+    });
+
+    cout << endl;
+    cout << "P: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetPatch() << " ";
+    });
+
+
+    cout << endl;
+    cout << "W: ";
+    for_each(vec.begin(), vec.end(), [](const Implicant& x) {
+        cout << setw(2) << x.WasPatched() << " ";
+    });
+
     cout << endl;
 }
 
@@ -346,13 +371,19 @@ int main() {
 
     do {
 
-        cout << "A new attempt to minimize M3. Patched implicants: " << patched_implicants << endl;
+        cout << "A new attempt to minimize M3. Previously patched implicants: " << patched_implicants << endl;
+
+        cout << "Previous M3: " << endl;
+
+        PrintVector(m_3_prev);
 
         // Clear M3 before doing anything
 
         m_3.clear();
 
         PatchVectors(m_3_prev, m_3);
+
+        cout << "Patched M3: " << endl;
 
         PrintVector(m_3);
 
@@ -365,19 +396,46 @@ int main() {
             return x;
         });
 
+        cout << "M3 with patched (cleared)" << endl;
+
+        PrintVector(m_3_prev);
+
+        vector<Implicant> tmpvec(m_3_prev);
+
+        m_3_prev.clear();
+
+        for_each(tmpvec.begin(), tmpvec.end(), [&tmpvec, &m_3_prev](Implicant x) {
+            int count_source = accumulate(tmpvec.begin(), tmpvec.end(), 0, [&x](int acc, const Implicant& y) {
+                return (x == y) ? acc + 1 : acc;
+            });
+            bool dest_contains = accumulate(m_3_prev.begin(), m_3_prev.end(), false, [&x](bool acc, const Implicant& y) {
+                return acc || (x == y);
+            });
+            if (count_source == 1 || !dest_contains) {
+                m_3_prev.push_back(x);
+            }
+        });
+
         // remove duplicates
-        set<Implicant> tmpset(m_3_prev.begin(), m_3_prev.end());
-        m_3_prev.assign(tmpset.begin(), tmpset.end());
+//        sort(m_3_prev.begin(), m_3_prev.end(), [](const Implicant& x) {
+//
+//        });
+//        set<Implicant> tmpset(m_3_prev.begin(), m_3_prev.end());
+//
+//        cout << "Tmpset:" << endl;
+//
+//        PrintSet(tmpset);
+//        m_3_prev.assign(tmpset.begin(), tmpset.end());
+
+        cout << "M3 without duplicates:" << endl;
+
+        PrintVector(m_3_prev);
 
         patched_implicants = accumulate(m_3.begin(), m_3.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
             return (x.WasPatched()) ? acc + 1 : acc;
         });
     } while(patched_implicants > 0 && (++tmp) < 10);
 
-
-    cout << "Patched implicants: " << patched_implicants << endl;
-
-    PrintVector(m_3);
 
     cout << endl;
 
