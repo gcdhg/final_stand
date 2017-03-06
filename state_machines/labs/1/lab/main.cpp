@@ -373,8 +373,6 @@ int main() {
 
         cout << "A new attempt to minimize M3. Previously patched implicants: " << patched_implicants << endl;
 
-        cout << "Previous M3: " << endl;
-
         PrintVector(m_3_prev);
 
         // Clear M3 before doing anything
@@ -382,10 +380,6 @@ int main() {
         m_3.clear();
 
         PatchVectors(m_3_prev, m_3);
-
-        cout << "Patched M3: " << endl;
-
-        PrintVector(m_3);
 
         // Clean up: set m_3_prev, calculate patched implicants
 
@@ -396,9 +390,7 @@ int main() {
             return x;
         });
 
-        cout << "M3 with patched (cleared)" << endl;
-
-        PrintVector(m_3_prev);
+        // remove duplicates
 
         vector<Implicant> tmpvec(m_3_prev);
 
@@ -416,24 +408,13 @@ int main() {
             }
         });
 
-        // remove duplicates
-//        sort(m_3_prev.begin(), m_3_prev.end(), [](const Implicant& x) {
-//
-//        });
-//        set<Implicant> tmpset(m_3_prev.begin(), m_3_prev.end());
-//
-//        cout << "Tmpset:" << endl;
-//
-//        PrintSet(tmpset);
-//        m_3_prev.assign(tmpset.begin(), tmpset.end());
-
-        cout << "M3 without duplicates:" << endl;
-
-        PrintVector(m_3_prev);
-
         patched_implicants = accumulate(m_3.begin(), m_3.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
             return (x.WasPatched()) ? acc + 1 : acc;
         });
+
+        cout << "Result: " << endl;
+
+        PrintVector(m_3_prev);
     } while(patched_implicants > 0 && (++tmp) < 10);
 
 
