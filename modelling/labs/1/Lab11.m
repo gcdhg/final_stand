@@ -18,9 +18,9 @@ ylabel('A(w)')
 A = k ./ sqrt(T .* W + 1);
 A1 = k ./ sqrt(T1 .* T1 .* W .* W + 1);
 A2 = k ./ sqrt(T2 .* T2 .* W .* W + 1);
-plot(w, A, 'r');
-plot(w, A1, 'g');
-plot(w, A2, 'b');
+plot(W, A, 'r');
+plot(W, A1, 'g');
+plot(W, A2, 'b');
 hold off
 
 figure
@@ -31,9 +31,9 @@ ylabel('U(w)')
 U = k ./ (T .* T .* W .* W + 1);
 U1 = k ./ (T1 .* T1 .* W .* W + 1);
 U2 = k ./ (T2 .* T2 .* W .* W + 1);
-plot(w, U, 'r')
-plot(w, U1, 'g')
-plot(w, U2, 'b')
+plot(W, U, 'r')
+plot(W, U1, 'g')
+plot(W, U2, 'b')
 hold off
 
 figure
@@ -44,9 +44,9 @@ ylabel('\phi(w)')
 PHI = -atan(T .* W);
 PHI1 = -atan(T1 .* W);
 PHI2 = -atan(T2 .* W);
-plot(w, PHI, 'r')
-plot(w, PHI1, 'g')
-plot(w, PHI2, 'b')
+plot(W, PHI, 'r')
+plot(W, PHI1, 'g')
+plot(W, PHI2, 'b')
 hold off
 
 figure
@@ -57,9 +57,9 @@ ylabel('V(w)')
 V = -k .* T .* W ./ (T .* T .* W .* W + 1);
 V1 = -k .* T1 .* W ./ (T1 .* T1 .* W .* W + 1);
 V2 = -k .* T2 .* W ./ (T1 .* T1 .* W .* W + 1);
-plot(w, V, 'r')
-plot(w, V1, 'g')
-plot(w, V2, 'b')
+plot(W, V, 'r')
+plot(W, V1, 'g')
+plot(W, V2, 'b')
 hold off
 
 figure
@@ -70,9 +70,9 @@ ylabel('L(w)')
 L = 20 * log10(A);
 L1 = 20 * log10(A1);
 L2 = 20 * log10(A2);
-plot(w, L, 'r')
-plot(w, L1, 'g')
-plot(w, L2, 'b')
+plot(W, L, 'r')
+plot(W, L1, 'g')
+plot(W, L2, 'b')
 hold off
 
 %----------
