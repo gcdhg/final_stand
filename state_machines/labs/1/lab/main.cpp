@@ -351,72 +351,75 @@ int main() {
 
     cout << endl;
 
-    // M3: patch M2 until no patching is possible
+    // M3: patch M2 once
 
     cout << "M3:" << endl;
-
-    vector<Implicant> m_3_prev;
-
-    transform(m_2.begin(), m_2.end(), back_inserter(m_3_prev), [](Implicant x) {
-        x.SetPatched(false);
-        return x;
-    });
     
 
     vector<Implicant> m_3;
+
+    PatchVectors(m_2, m_3);
+
+    PrintVector(m_3);
+
+    cout << endl;
 
     uint16_t patched_implicants = 0;
 
     int tmp = 0;
 
+    // M4:  patch M3 until no patching is possible
+
+    cout << "M4: " << endl;
+
+    vector<Implicant> m_4;
+    vector<Implicant> m_4_prev;
+
+    transform(m_3.begin(), m_3.end(), back_inserter(m_4_prev), [](Implicant x) {
+        x.SetPatched(false);
+        return x;
+    });
+
     do {
+        // Clear M4 before doing anything
 
-        cout << "A new attempt to minimize M3. Previously patched implicants: " << patched_implicants << endl;
+        m_4.clear();
 
-        PrintVector(m_3_prev);
+        PatchVectors(m_4_prev, m_4);
 
-        // Clear M3 before doing anything
+        // Clean up: set m_4_prev, calculate patched implicants
 
-        m_3.clear();
+        m_4_prev.clear();
 
-        PatchVectors(m_3_prev, m_3);
-
-        // Clean up: set m_3_prev, calculate patched implicants
-
-        m_3_prev.clear();
-
-        transform(m_3.begin(), m_3.end(), back_inserter(m_3_prev), [](Implicant x) {
+        transform(m_4.begin(), m_4.end(), back_inserter(m_4_prev), [](Implicant x) {
             x.SetPatched(false);
             return x;
         });
 
         // remove duplicates
 
-        vector<Implicant> tmpvec(m_3_prev);
+        vector<Implicant> tmpvec(m_4_prev);
 
-        m_3_prev.clear();
+        m_4_prev.clear();
 
-        for_each(tmpvec.begin(), tmpvec.end(), [&tmpvec, &m_3_prev](Implicant x) {
+        for_each(tmpvec.begin(), tmpvec.end(), [&tmpvec, &m_4_prev](Implicant x) {
             int count_source = accumulate(tmpvec.begin(), tmpvec.end(), 0, [&x](int acc, const Implicant& y) {
                 return (x == y) ? acc + 1 : acc;
             });
-            bool dest_contains = accumulate(m_3_prev.begin(), m_3_prev.end(), false, [&x](bool acc, const Implicant& y) {
+            bool dest_contains = accumulate(m_4_prev.begin(), m_4_prev.end(), false, [&x](bool acc, const Implicant& y) {
                 return acc || (x == y);
             });
             if (count_source == 1 || !dest_contains) {
-                m_3_prev.push_back(x);
+                m_4_prev.push_back(x);
             }
         });
 
-        patched_implicants = accumulate(m_3.begin(), m_3.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
+        patched_implicants = accumulate(m_4.begin(), m_4.end(), (uint16_t) 0, [](uint16_t acc, const Implicant &x) {
             return (x.WasPatched()) ? acc + 1 : acc;
         });
-
-        cout << "Result: " << endl;
-
-        PrintVector(m_3_prev);
     } while(patched_implicants > 0 && (++tmp) < 10);
 
+    PrintVector(m_4);
 
     cout << endl;
 
@@ -434,11 +437,11 @@ int main() {
     // Remove redundant dnf implicants
     vector<Implicant> mdnf_m;
 
-    remove_copy_if(m_3.begin(), m_3.end(), back_inserter(mdnf_m), [&m_3, &mdnf_source, &func](const Implicant& x) {
+    remove_copy_if(m_4.begin(), m_4.end(), back_inserter(mdnf_m), [&m_4, &mdnf_source, &func](const Implicant& x) {
         cout << "Checking if we need to remove " << ImplicantToString(x) << endl;
 
         vector<Implicant> other_implicants;
-        remove_copy_if(m_3.begin(), m_3.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
+        remove_copy_if(m_4.begin(), m_4.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
             return x == y;
         });
 
