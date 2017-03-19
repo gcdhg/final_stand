@@ -170,11 +170,11 @@ public:
     }
 };
 
-void PrintVariables(uint8_t count ) {
+void PrintVariables(std::ostream& stream, uint8_t count ) {
     for (uint8_t i = 0; i < count; i++) {
-        cout << VARIABLE_NAMES[i];
+        stream << VARIABLE_NAMES[i];
     }
-    cout << endl;
+    stream << endl;
 }
 
 void PrintImplicant(const Implicant& implicant, uint8_t count) {
@@ -246,7 +246,7 @@ void PrintVector(vector<Implicant>& vec) {
     cout << endl;
 }
 
-string ImplicantToString(const Implicant& source) {
+string ImplicantStringRepr(const Implicant &source) {
     return (
         string("[") +
         to_string(source.GetIndex()) +
@@ -258,6 +258,26 @@ string ImplicantToString(const Implicant& source) {
     );
 }
 
+string ImplicantToString(const Implicant& source, uint8_t size) {
+    string result("");
+
+    for (uint8_t i = 0; i < size; i++) {
+        bool patched = (source.GetPatch() & (0x1 << i)) >> i;
+        uint8_t value = (source.GetIndex() & (0x1 << i)) >> i;
+
+        if (patched) {
+            result.insert(0, "-");
+        } else if (value == 1) { // Yes, those are conditionals
+            result.insert(0, "1");
+        } else { // Yes, it is a *better* design than doing casts and other dirty tricks
+            result.insert(0, "0");
+        }
+    }
+
+    return result;
+}
+
+
 void PatchVectors(vector<Implicant>& source, vector<Implicant>& target, bool verbose = false) {
     for (uint16_t i = 0; i < source.size(); i++) {
         for (uint16_t j = i + 1; j < source.size(); j++) {
@@ -265,7 +285,7 @@ void PatchVectors(vector<Implicant>& source, vector<Implicant>& target, bool ver
                 target.push_back(source[i].Patch(source[j]));
 
                 if (verbose) {
-                    cout << "Patching " << ImplicantToString(source[i]) << " with " << ImplicantToString(source[j]) << endl;
+                    cout << "Patching " << ImplicantStringRepr(source[i]) << " with " << ImplicantStringRepr(source[j]) << endl;
                 }
             }
         }
@@ -275,7 +295,7 @@ void PatchVectors(vector<Implicant>& source, vector<Implicant>& target, bool ver
         if (!source[i].WasPatched()) {
 
             if (verbose) {
-                cout << "Adding unpached value: " << ImplicantToString(source[i]) << endl;
+                cout << "Adding unpached value: " << ImplicantStringRepr(source[i]) << endl;
             }
             target.push_back(Implicant(source[i]));
         }
@@ -315,7 +335,7 @@ int main() {
 
     cout << "Truth table for the function:" << endl;
 
-    PrintVariables((uint8_t) function_size);
+    PrintVariables(cout, (uint8_t) function_size);
 
     for_each(func.begin(), func.end(), [&function_size](Implicant x) {
         PrintImplicant(x, function_size);
@@ -470,14 +490,12 @@ int main() {
 
     cout << endl;
 
+    PrintVariables(cout, (uint8_t) function_size);
+    PrintVariables(mdnf, (uint8_t) function_size);
 
-    for (uint8_t i = 0; i < function_size; i++) {
-        cout << setw(10) << " " << setw(2) << VARIABLE_NAMES[i];
-    }
-    cout << endl << endl;
-
-    for_each(mdnf_source.begin(), mdnf_source.end(), [](const Implicant& x) {
-        cout << setw(10) << " " << setw(2) << x.GetIndex() << " " << endl;
+    for_each(mdnf_m.begin(), mdnf_m.end(), [&function_size, &mdnf](const Implicant& x) {
+        cout << ImplicantToString(x, function_size) << endl;
+        mdnf << ImplicantToString(x, function_size) << endl;
     });
 
     scale.close();
