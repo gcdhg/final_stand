@@ -438,37 +438,26 @@ int main() {
     vector<Implicant> mdnf_m;
 
     remove_copy_if(m_4.begin(), m_4.end(), back_inserter(mdnf_m), [&m_4, &mdnf_source, &func](const Implicant& x) {
-        cout << "Checking if we need to remove " << ImplicantToString(x) << endl;
 
         vector<Implicant> other_implicants;
         remove_copy_if(m_4.begin(), m_4.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
             return x == y;
         });
 
-        cout << "Other implicants: " << endl;
-        PrintVector(other_implicants);
-
         // Function values covered by x
         vector<Implicant> covered_by_x;
         remove_copy_if(func.begin(), func.end(), back_inserter(covered_by_x), [&x](const Implicant& y) {
-            return (y.GetIndex() & ~x.GetPatch()) != x.GetIndex();
+            return ((y.GetIndex() & ~x.GetPatch()) != x.GetIndex()) || y.GetValue() != TRUE;
         });
-
-        cout << "Function values covered by current:" << endl;
-        PrintVector(covered_by_x);
 
         // Check if every implicant is covered
         bool everything_is_covered = accumulate(covered_by_x.begin(), covered_by_x.end(), true, [&other_implicants](bool acc, const Implicant& y) {
-            bool covered = acc && accumulate(other_implicants.begin(), other_implicants.end(), true, [&y](bool acc, const Implicant& z) {
-                return acc && ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
+            bool covered = accumulate(other_implicants.begin(), other_implicants.end(), false, [&y](bool acc, const Implicant& z) {
+                return acc || ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
             });
-            if (!covered) {
-                
-            }
-            return covered;
-        });
 
-        cout << "Result:" << everything_is_covered << endl;
+            return acc && covered;
+        });
 
         return everything_is_covered;
     });
