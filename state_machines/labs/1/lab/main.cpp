@@ -302,6 +302,30 @@ void PatchVectors(vector<Implicant>& source, vector<Implicant>& target, bool ver
     }
 }
 
+void PrintTable(vector<Implicant> func, vector<Implicant> dnf, const uint8_t& func_size) {
+    vector<Implicant> values;
+
+    remove_copy_if(func.begin(), func.end(), back_inserter(values), [](const Implicant& x) {
+        return x.GetValue() != TRUE;
+    });
+
+    cout << setw(4) << " ";
+
+    for_each(values.begin(), values.end(), [](const Implicant& x) {
+        cout << setw(2) << x.GetIndex() << " ";
+    });
+    cout << endl;
+
+    for_each(dnf.begin(), dnf.end(), [&values, &func_size](const Implicant& x) {
+        cout << setw(4) << ImplicantToString(x, func_size);
+
+        for_each(values.begin(), values.end(), [&x](const Implicant& y) {
+            cout << setw(2) << (((y.GetIndex() & ~x.GetPatch()) == x.GetIndex()) ? "+" : "-") << " ";
+        });
+        cout << endl;
+    });
+}
+
 int main() {
     ifstream scale("scale.txt");
     ofstream mdnf("mdnf.txt");
@@ -443,6 +467,16 @@ int main() {
 
     cout << endl;
 
+    cout << "TDNF:" << endl;
+    PrintVariables(cout, (uint8_t) function_size);
+
+    for_each(m_4.begin(), m_4.end(), [&function_size](const Implicant& x) {
+        cout << ImplicantToString(x, function_size) << endl;
+    });
+
+    cout << endl;
+    PrintTable(func, m_4, (uint8_t) function_size);
+
     // Cleaning up
 
     cout << "--------------------------";
@@ -455,32 +489,113 @@ int main() {
     });
 
     // Remove redundant dnf implicants
-    vector<Implicant> mdnf_m;
+    vector<Implicant> mdnf_m(m_4);
 
-    remove_copy_if(m_4.begin(), m_4.end(), back_inserter(mdnf_m), [&m_4, &mdnf_source, &func](const Implicant& x) {
+    vector<Implicant> mdnf_m_prev;
+    vector<bool> can_be_removed;
 
-        vector<Implicant> other_implicants;
-        remove_copy_if(m_4.begin(), m_4.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
-            return x == y;
-        });
+    do {
+        mdnf_m_prev.clear();
+        can_be_removed.clear();
+        copy(mdnf_m.begin(), mdnf_m.end(), back_inserter(mdnf_m_prev));
 
-        // Function values covered by x
-        vector<Implicant> covered_by_x;
-        remove_copy_if(func.begin(), func.end(), back_inserter(covered_by_x), [&x](const Implicant& y) {
-            return ((y.GetIndex() & ~x.GetPatch()) != x.GetIndex()) || y.GetValue() != TRUE;
-        });
-
-        // Check if every implicant is covered
-        bool everything_is_covered = accumulate(covered_by_x.begin(), covered_by_x.end(), true, [&other_implicants](bool acc, const Implicant& y) {
-            bool covered = accumulate(other_implicants.begin(), other_implicants.end(), false, [&y](bool acc, const Implicant& z) {
-                return acc || ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
+        transform(mdnf_m_prev.begin(), mdnf_m_prev.end(), back_inserter(can_be_removed), [&mdnf_m_prev, &mdnf_source, &func](const Implicant& x){
+            vector<Implicant> other_implicants;
+            remove_copy_if(mdnf_m_prev.begin(), mdnf_m_prev.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
+                return x == y;
             });
 
-            return acc && covered;
+            // Function values covered by x
+            vector<Implicant> covered_by_x;
+            remove_copy_if(func.begin(), func.end(), back_inserter(covered_by_x), [&x](const Implicant& y) {
+                return ((y.GetIndex() & ~x.GetPatch()) != x.GetIndex()) || y.GetValue() != TRUE;
+            });
+
+            // Check if every implicant is covered
+            bool everything_is_covered = accumulate(covered_by_x.begin(), covered_by_x.end(), true, [&other_implicants](bool acc, const Implicant& y) {
+                bool covered = accumulate(other_implicants.begin(), other_implicants.end(), false, [&y](bool acc, const Implicant& z) {
+                    return acc || ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
+                });
+
+                return acc && covered;
+            });
+
+            return everything_is_covered;
         });
 
-        return everything_is_covered;
-    });
+        int imp_idx = 0;
+        bool found = false;
+
+        cout << "Can be removed: ";
+        for_each(can_be_removed.begin(), can_be_removed.end(), [](bool x) {
+            cout << x;
+        });
+        cout << endl;
+
+        mdnf_m.clear();
+
+        remove_copy_if(mdnf_m_prev.begin(), mdnf_m_prev.end(), back_inserter(mdnf_m), [&mdnf_m_prev, &mdnf_source, &func, &can_be_removed, &imp_idx, &found](const Implicant& x) {
+            bool possible = can_be_removed[imp_idx++];
+
+            if (possible && !found) {
+                vector<Implicant> other_implicants;
+                remove_copy_if(mdnf_m_prev.begin(), mdnf_m_prev.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
+                    return x == y;
+                });
+
+                vector<Implicant> covered_by_func;
+                remove_copy_if(func.begin(), func.end(), back_inserter(covered_by_func), [&x](const Implicant& y) {
+                    return y.GetValue() != TRUE;
+                });
+
+                bool everything_is_covered = accumulate(covered_by_func.begin(), covered_by_func.end(), true, [&other_implicants](bool acc, const Implicant& y) {
+                    bool covered = accumulate(other_implicants.begin(), other_implicants.end(), false, [&y](bool acc, const Implicant& z) {
+                        return acc || ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
+                    });
+
+                    return acc && covered;
+                });
+
+                bool found_prev = found;
+
+                if (everything_is_covered && !found) {
+                    found = true;
+                }
+
+                return everything_is_covered && !found_prev;
+            } else {
+                return false;
+            }
+        });
+    } while (accumulate(can_be_removed.begin(), can_be_removed.end(), false, [](bool acc, bool x) { return acc || x; }));
+
+//    remove_copy_if(m_4.begin(), m_4.end(), back_inserter(mdnf_m), [&m_4, &mdnf_source, &func, &found](const Implicant& x) {
+//        vector<Implicant> other_implicants;
+//        remove_copy_if(m_4.begin(), m_4.end(), back_inserter(other_implicants), [&x](const Implicant& y) {
+//            return x == y;
+//        });
+//
+//        // Function values covered by x
+//        vector<Implicant> covered_by_x;
+//        remove_copy_if(func.begin(), func.end(), back_inserter(covered_by_x), [&x](const Implicant& y) {
+//            return ((y.GetIndex() & ~x.GetPatch()) != x.GetIndex()) || y.GetValue() != TRUE;
+//        });
+//
+//        // Check if every implicant is covered
+//        bool everything_is_covered = accumulate(covered_by_x.begin(), covered_by_x.end(), true, [&other_implicants](bool acc, const Implicant& y) {
+//            bool covered = accumulate(other_implicants.begin(), other_implicants.end(), false, [&y](bool acc, const Implicant& z) {
+//                return acc || ((y.GetIndex() & ~z.GetPatch()) == z.GetIndex());
+//            });
+//
+//            return acc && covered;
+//        });
+//
+//        if (everything_is_covered && !found) {
+//            found = true;
+//        }
+//
+//        return everything_is_covered && !found;
+//    });
 
     cout << "Implicants after redundant were removed:" << endl;
 
@@ -497,6 +612,8 @@ int main() {
         cout << ImplicantToString(x, function_size) << endl;
         mdnf << ImplicantToString(x, function_size) << endl;
     });
+
+    PrintTable(func, mdnf_m, (uint8_t) function_size);
 
     scale.close();
     mdnf.close();
