@@ -4,17 +4,17 @@
 //------------------------------------------------------------------------------
 void main()
 {
-        char cur_char;  //Текущий считанный из файла символ
+        char cur_char;  //РўРµРєСѓС‰РёР№ СЃС‡РёС‚Р°РЅРЅС‹Р№ РёР· С„Р°Р№Р»Р° СЃРёРјРІРѕР»
         string in_file;
         in_file = "input.txt";
 
-        //объявление класса svetofor_sm
+        //РѕР±СЉСЏРІР»РµРЅРёРµ РєР»Р°СЃСЃР° svetofor_sm
         svetofor_sm svetofor("svetofor.txt");
-        //Сброс 
+        //РЎР±СЂРѕСЃ 
         svetofor.reset();
 
 
-        //открываем файловый поток связанный с входным файлом
+        //РѕС‚РєСЂС‹РІР°РµРј С„Р°Р№Р»РѕРІС‹Р№ РїРѕС‚РѕРє СЃРІСЏР·Р°РЅРЅС‹Р№ СЃ РІС…РѕРґРЅС‹Рј С„Р°Р№Р»РѕРј
        	ifstream input_file (in_file.c_str());
 	    if (!input_file) {
 		cout << "\nError reading \"input.txt\". No such file!";
@@ -31,7 +31,7 @@ void main()
         string blank("        ");
         string print("        ");
 
-        //Посимвольно читаем файл
+        //РџРѕСЃРёРјРІРѕР»СЊРЅРѕ С‡РёС‚Р°РµРј С„Р°Р№Р»
        while (!input_file.eof()){
 
                  input_file.get(cur_char);
